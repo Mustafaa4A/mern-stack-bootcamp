@@ -1,5 +1,4 @@
 # 📘 WEEK 1: WEB FOUNDATIONS, MERN OVERVIEW & PROJECT SETUP
-
 ---
 
 ## 🎯 Week Objective
