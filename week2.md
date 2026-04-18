@@ -5,61 +5,71 @@
 
 By the end of this week, students will:
 
-*   **Implement Professional Modular Architecture:** Using `index.js` as the entry point and domain-based features.
-*   **Master ES Modules (ESM):** Using `import`/`export` and `"type": "module"`.
-*   **Build with Industry Libraries:** Using `Joi`, `Bcrypt`, `JWT`, and `Mongoose-Paginate-v2`.
-*   **Implement Simplified RBAC:** Logic for `Admin` vs. `Entry` roles.
-*   **Full Feature Development:** Creating complete Models, Controllers, and Routes for "Smart Kutub Finder".
+*   **Understand Architecture Choice:** Why Modular (Domain-based) wins for scale.
+*   **Establish Solid Foundations:** Master ES Modules, Environment variables, and Git best practices.
+*   **Professional DB Integration:** Connect to MongoDB using professional patterns.
+*   **Implement Feature Modules:** Build robust Models, Controllers, and Routes using Joi and Bcrypt.
+*   **Master Security Pipeline:** Implement custom Auth & RBAC (Admin/Entry) logic.
+*   **Global Error Handling:** Manage 404s and test everything in Postman.
 
 ---
 
-# 🟥 1. ARCHITECTURE & PROJECT SETUP
+# 🟥 1. ARCHITECTURE THEORY: MVC VS. MODULAR
+
+Before writing code, we must decide how to organize it. In this bootcamp, we choose the **Modular (Vertical)** approach.
+
+| Feature | **MVC (Layered/Horizontal)** | **Modular (Domain-based/Vertical)** |
+| :--- | :--- | :--- |
+| **Organization** | By type (Models, Views, Controllers). | By feature (Auth, Books, Users). |
+| **Scalability** | Harder as folders get massive. | Easier; just add a feature folder. |
+| **Complexity** | Simple for beginners. | Industry standard for production. |
+| **Isolation** | Code is scattered. | Complete feature isolation. |
+
+---
+
+# 🟥 2. PROJECT FOUNDATIONS (ESM & CONFIG)
+
+### ⚙️ ES Modules (ESM) Transition
+Modern Node.js uses `import/export`. We enable this in `package.json`:
+```json
+{ "type": "module" }
+```
 
 ### 📂 The Modular Folder Structure
-We group everything by its business domain (feature).
-
 ```text
 /src
   /config                   # Global configs (db.js)
-  /features (or modules)    # THE HEART OF MODULAR DESIGN
-    /auth                   # Auth Routes, Controller
-    /users                  # User Routes, Controller, Model
-    /locations              # Location Routes, Controller, Model
-  /middlewares              # Global Protect & Authorize Middlewares
-  /utils                    # AppError, catchAsync, fetchData logic
-  index.js                  # Express setup and Server entry point
+  /features (or modules)    # Domain-based features
+    /auth                   # Auth logic
+    /users                  # User management
+    /locations              # Location management
+  /middlewares              # Auth & Error middlewares
+  /utils                    # Helpers (catchAsync, AppError)
+  index.js                  # App & Server entry point
 ```
 
-### ⚙️ Environment Variables (`.env`)
-Never hardcode secrets. Use `dotenv` to manage configuration.
+### 🔑 Environment & Git (`.env` & `.gitignore`)
+We use `dotenv` to protect our secrets.
 
 ```javascript
 // index.js
 import "dotenv/config";
-
 const PORT = process.env.PORT || 5000;
-const MONGO_URL = process.env.MONGO_URL;
 ```
 
-#### 📄 `.env` Template
-```text
-PORT=5000
-MONGO_URL=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
-JWT_EXPIRE=1d
-```
-
-### 🛡️ Git Management (`.gitignore`)
-Always ignore files that are generated or contain secrets.
-
+**Essential `.gitignore`:**
 ```text
 node_modules
 .env
 ```
 
-### 🔌 MongoDB Connection
-Create a clean connection function in `src/config/db.js`.
+---
 
+# 🟥 3. DATABASE INTEGRATION
+
+Connecting to the database is the first step in our implementation phase.
+
+### 🔌 MongoDB Connection (`src/config/db.js`)
 ```javascript
 import mongoose from "mongoose";
 
@@ -70,92 +80,47 @@ export const connectMongoDb = (url) => {
 };
 ```
 
-### ⚙️ ESM Initialization
-Update `package.json` to enable modern JavaScript.
-```json
-{
-  "type": "module",
-  "dependencies": {
-    "express": "^4.21.0",
-    "mongoose": "^8.0.0",
-    "joi": "^17.10.0",
-    "bcrypt": "^5.1.0",
-    "jsonwebtoken": "^9.0.0",
-    "mongoose-paginate-v2": "^1.7.0",
-    "joi-objectid": "^4.0.0"
-  }
-}
-```
-
 ---
 
-# 🟥 2. THE MODULAR MODEL (SCHEMA & VALIDATION)
+# 🟥 4. FEATURE IMPLEMENTATION: DOMAIN MODULES
 
-Every model must include **Validation** (Joi) and **Hooks** (Bcrypt).
+Each feature module contains its own **Model**, **Controller**, and **Routes**.
 
-### 🔴 Sample: User Model (`features/users/model.js`)
+### 🔴 The Modular Model (`features/users/model.js`)
+Includes **Joi Validation**, **HashingHooks**, and **Methods**.
+
 ```javascript
 import mongoose from "mongoose";
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import MongoosePaginate from "mongoose-paginate-v2";
-import JoiObjectId from "joi-objectid";
-
-const ObjectId = JoiObjectId(Joi);
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, default: null },
-  username: { type: String, required: true, trim: true, unique: [true, "User is already taken"] },
-  password: { type: String, required: true, trim: true },
-  role: { type: String, enum: ["Admin", "Entry"], required: true },
-  status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
-}, { timestamps: true, versionKey: false });
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ["Admin", "Entry"], required: true }
+}, { timestamps: true });
 
-// 🛡️ Data Validation (Joi)
+// Joi Validation
 export const validate = (user) => {
-  const Schema = Joi.object({
-    name: Joi.string(),
-    username: Joi.string().min(2).max(20).required(),
+  return Joi.object({
+    username: Joi.string().min(2).required(),
     password: Joi.string().required(),
-    role: Joi.string().valid("Admin", "Entry").required(),
-    status: Joi.string()
-  }).unknown(false).strict();
-  return Schema.validate(user);
+    role: Joi.string().valid("Admin", "Entry").required()
+  }).validate(user);
 };
 
-// 🔒 Hash password before save
+// Password Hashing
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// ✅ Method to check password
-userSchema.methods.checkPassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
-};
-
-// 🎫 Method to generate token
-userSchema.methods.generateToken = async function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
-  });
-};
-
-userSchema.plugin(MongoosePaginate);
 export default mongoose.model("User", userSchema);
 ```
 
----
-
-# 🟥 3. THE SMART CONTROLLER (CRUD & FETCH)
-
-We focus on clean, asynchronous logic using the user-provided patterns.
-
-### 🔴 Sample: User Controller (`features/users/controller.js`)
+### 🔴 The Smart Controller (`features/users/controller.js`)
 ```javascript
 import User, { validate } from "./model.js";
 
@@ -163,54 +128,7 @@ export const createUser = async (req, res) => {
   try {
     const { error } = validate(req.body);
     if (error) return res.status(400).send({ status: false, message: error.details[0].message });
-
-    const exists = await User.findOne({ username: req.body.username });
-    if (exists) return res.status(400).send({ status: false, message: "User already exists" });
-
-    const user = await User.create({ ...req.body, createdBy: req?.user?._id });
-    res.status(201).send({ status: true, message: "User created successfully", data: user });
-  } catch (err) {
-    res.status(500).json({ status: false, message: err.message });
-  }
-};
-
-export const deleteUser = async (req, res) => {
-  try {
-     const { id } = req.params;
-     const deletedUser = await User.findOneAndDelete({ _id: id });
-     if (!deletedUser) return res.status(400).json({ status: false, message: "Invalid action" });
-     res.send({ status: true, message: "User deleted successfully", data: deletedUser });
-  } catch (err) {
-     res.status(500).json({ status: false, message: err.message });
-  }
-};
-```
-
----
-
-# 🟥 4. AUTHENTICATION & TOKEN LOGIC
-
-### 🔴 Auth Controller (`features/auth/controller.js`)
-```javascript
-import User from "../users/model.js";
-
-export const login = async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
-
-    if (!user || !(await user.checkPassword(password))) {
-      return res.status(400).json({ status: false, message: "Invalid credentials" });
-    }
-
-    if (user.status !== "Active") {
-      return res.status(403).json({ status: false, message: "Account inactive, contact admin" });
-    }
-
-    const token = await user.generateToken();
-    const { password: pass, ...data } = user.toObject();
-
-    res.status(200).json({ status: true, message: "Logged in", data: { ...data, token } });
+    // ... logic for creation
   } catch (err) {
     res.status(500).json({ status: false, message: err.message });
   }
@@ -219,71 +137,60 @@ export const login = async (req, res) => {
 
 ---
 
-# 🟥 5. SIMPLIFIED RBAC (ADMIN vs. ENTRY)
+# 🟥 5. SECURITY PIPELINE & RBAC
 
-For the **Smart Kutub Finder**, we implement binary logic:
+Identity and access control are the final pieces of backend logic.
 
-*   **Admin:** Full access to everything.
-*   **Entry:** Full access to "Library" operations, but NO access to "User" management.
+### 🛡️ Auth Logic (`features/auth/controller.js`)
+*   **Login:** Find user → compare password → generate JWT.
+*   **Token:** Sent to client for all future requests.
 
-### 🔴 Auth Middleware (`middlewares/auth.js`)
+### 🔑 Simplified RBAC (`middlewares/auth.js`)
+In our project, we use binary roles:
+*   **Admin:** Full access.
+*   **Entry:** Library management only.
+
 ```javascript
-export const protect = async (req, res, next) => {
-  // 1. Get token from header
-  // 2. Verify token
-  // 3. Attach User to req.user
-};
-
 export const authorize = (roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res.status(401).send({
-        status: false,
-        message: `Forbidden: Access restricted to ${roles.join(" or ")}`
-      });
+      return res.status(403).json({ status: false, message: "Forbidden" });
     }
     next();
   };
 };
-
-// 🗺️ Application Map:
-// User CRUD: router.post('/create', protect, authorize(['Admin']), createUser);
-// Book CRUD: router.post('/create', protect, authorize(['Admin', 'Entry']), createBook);
 ```
 
 ---
 
-# 🟥 6. ADVANCED TOPICS & TESTING
+# 🟥 6. ERROR HANDLING & VERIFICATION
 
-### 🔴 Handling 404 Routes
-Place this at the very bottom of your middleware stack in `index.js` to catch any undefined routes.
-
+### 🔴 Incorrect Route Handling (404)
 ```javascript
-// handling incorrect routes
 app.use((req, res) => {
   res.status(404).json({
     status: "failed",
-    message: `Route not found ${req.originalUrl}`
+    message: `Route not found: ${req.originalUrl}`
   });
 });
 ```
 
-### 🧪 Professional Testing with Postman
-1.  **Login Request:** Capture the `token`.
-2.  **Authorization Header:** Use `Bearer <token>` in the Headers tab.
-3.  **Tests:** Try to access User creation with an 'Entry' token and verify you get 401/403.
+### 🧪 Postman Verification
+- Run your server.
+- Authenticate and get your JWT.
+- Test Admin routes with an Entry token to verify **RBAC security**.
 
 ---
 
 # 🚀 WEEK 2 CHECKPOINTS
 
-* [ ] `index.js` entry point created.
-* [ ] Folder structure set to **Modular/Domain-based**.
-* [ ] **Joi validation** implemented in every feature model.
-* [ ] **Auth Pipeline:** Bcrypt hashing → JWT generation complete.
-* [ ] **Simplified RBAC:** Entry vs Admin role restrictions verified.
-* [ ] Full CRUD for **Smart Kutub Finder** entities functional.
-* [ ] All modular endpoints tested in Postman with proper roles.
+* [ ] Architecture choice (Modular) understood.
+* [ ] `.env` and `.gitignore` correctly configured.
+* [ ] MongoDB connected successfully.
+* [ ] **Modular logic** implemented (Models, Controllers, Routes).
+* [ ] **RBAC pipeline** (Admin vs. Entry) verified.
+* [ ] 404 handler catching incorrect routes.
+* [ ] Full feature set verified in Postman.
 
 ---
 
