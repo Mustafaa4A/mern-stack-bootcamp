@@ -182,6 +182,27 @@ app.use((req, res) => {
 
 ---
 
+# 🟥 7. WEEK 2 ASSIGNMENTS
+
+### 📝 Assignment 1: The "Smart Kutub Finder" Re-build
+**Goal:** Master the backend functionalities we covered during this session.
+*   **Task:** Build the full backend for the "Smart Kutub Finder" from scratch (from your mind!).
+*   **Rules:** Do not copy-paste. If you get stuck, refer to your notes or the GitHub repository, but try to understand the logic before writing it yourself.
+
+### 📝 Assignment 2: Your Own Modular Project
+**Goal:** Apply all concepts to a fresh project and explore advanced authorization.
+*   **Core Requirements:**
+    -   Create User and Role management.
+    -   Implement full Authentication and Authorization.
+*   **Advanced Authorization (ABAC):**
+    -   Use **Attribute-Based Access Control** for your project.
+    -   **Requirement:** Use a specialized package like **CASL** (Recommended).
+    -   **Alternatives for Research:** `accesscontrol`, `casbin`, `rbac`, or `acl`.
+*   **Quality Check:** Apply every single idea we covered in the session (Joi, Bcrypt, JWT, Modular structure, 404 handler, etc.).
+*   **The "Plus Three" Rule:** Identify and implement **at least 3 extra concepts** that we did not cover in class (e.g., File Uploads, Email Notification, Rate Limiting, API Documentation like Swagger, etc.).
+
+---
+
 # 🚀 WEEK 2 CHECKPOINTS
 
 * [ ] Architecture choice (Modular) understood.
