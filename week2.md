@@ -30,6 +30,46 @@ We group everything by its business domain (feature).
   index.js                  # Express setup and Server entry point
 ```
 
+### ⚙️ Environment Variables (`.env`)
+Never hardcode secrets. Use `dotenv` to manage configuration.
+
+```javascript
+// index.js
+import "dotenv/config";
+
+const PORT = process.env.PORT || 5000;
+const MONGO_URL = process.env.MONGO_URL;
+```
+
+#### 📄 `.env` Template
+```text
+PORT=5000
+MONGO_URL=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+JWT_EXPIRE=1d
+```
+
+### 🛡️ Git Management (`.gitignore`)
+Always ignore files that are generated or contain secrets.
+
+```text
+node_modules
+.env
+```
+
+### 🔌 MongoDB Connection
+Create a clean connection function in `src/config/db.js`.
+
+```javascript
+import mongoose from "mongoose";
+
+export const connectMongoDb = (url) => {
+  mongoose.connect(url)
+    .then(() => console.log("✅ MongoDB connected"))
+    .catch((err) => console.log("❌ DB Error:", err));
+};
+```
+
 ### ⚙️ ESM Initialization
 Update `package.json` to enable modern JavaScript.
 ```json
@@ -213,8 +253,22 @@ export const authorize = (roles) => {
 
 ---
 
-# 🟥 6. API TESTING WITH POSTMAN
+# 🟥 6. ADVANCED TOPICS & TESTING
 
+### 🔴 Handling 404 Routes
+Place this at the very bottom of your middleware stack in `index.js` to catch any undefined routes.
+
+```javascript
+// handling incorrect routes
+app.use((req, res) => {
+  res.status(404).json({
+    status: "failed",
+    message: `Route not found ${req.originalUrl}`
+  });
+});
+```
+
+### 🧪 Professional Testing with Postman
 1.  **Login Request:** Capture the `token`.
 2.  **Authorization Header:** Use `Bearer <token>` in the Headers tab.
 3.  **Tests:** Try to access User creation with an 'Entry' token and verify you get 401/403.
